@@ -147,6 +147,81 @@
 | Contador interno | ✅ Sim (permite múltiplas unidades disponíveis) | ❌ Não (apenas bloqueado ou disponível) |
 | Inversão de prioridade (priority inheritance) | ❌ Não implementado | ✅ Implementado, útil para evitar *priority inversion* |
 
+---
+
+## ✅ **Relatório – Questão 4**
+
+### 🧩 **Objetivo da Questão**
+
+Demonstrar o funcionamento e a **restrição de uso do recurso mutex (mutual exclusion)** no FreeRTOS, simulando uma tentativa inválida de liberar o mutex por uma tarefa que não o possui.
+
+---
+
+### ⚙️ **Recursos RTOS utilizados**
+
+- **2 tarefas** com a **mesma prioridade**:
+    - `Task01`: adquire o mutex.
+    - `Task02`: tenta liberar o mutex sem ter adquirido.
+- **1 mutex**: `Mutex01Handle`.
+
+---
+
+### 🧪 **Comportamento implementado**
+
+### **Task 1 (Task01)**
+
+- Executa primeiro e **adquire o mutex** com `osMutexAcquire`.
+- Após adquirir, envia pela UART a mensagem:
+    
+    ```
+    Task1: mutex adquirido.
+    
+    ```
+    
+- Permanece em loop com `osDelay`, **mantendo o mutex em posse**.
+
+### **Task 2 (Task02)**
+
+- Aguarda 2 segundos para garantir que `Task01` já adquiriu o mutex.
+- Tenta **liberar o mutex sem tê-lo adquirido**, o que é **proibido** pelo FreeRTOS.
+- O código tenta detectar esse comportamento via:
+    
+    ```c
+    result = osMutexRelease(Mutex01Handle);
+    
+    ```
+    
+    e imprime o valor de retorno.
+    
+
+---
+
+### ❌ **Problema identificado**
+
+- **O sistema trava** após a tentativa de `Task02` liberar o mutex.
+- Isso ocorre porque, conforme a documentação do CMSIS-RTOS2 e FreeRTOS, **não é permitido liberar um mutex que não foi adquirido pela tarefa corrente**.
+- **Ao violar essa regra, o sistema pode entrar em estado de erro irreversível** (comportamento indefinido).
+
+---
+
+### 🧠 **Conceitos explorados**
+
+- O **mutex** é um recurso de exclusão mútua que garante que **apenas uma tarefa possa acessar uma região crítica por vez**.
+- **Somente a tarefa que adquiriu o mutex pode liberá-lo**.
+- Isso é diferente dos **semáforos binários**, que podem ser adquiridos por uma tarefa e liberados por outra.
+
+---
+
+### 🔎 **Observações adicionais**
+
+- O sistema poderia ter identificado o erro usando o valor de retorno `osErrorResource`, mas o travamento impediu a finalização da função.
+- Para testes futuros, recomenda-se:
+    - **Não liberar mutex sem adquiri-lo**.
+    - Utilizar logs antes da chamada para facilitar a depuração.
+    - Monitorar com `osMutexGetOwner` (se disponível) ou estratégias alternativas.
+
+---
+
 ## ✅ **Relatório – Questão 5**
 
 ### 🧩 **Objetivo da Questão**
